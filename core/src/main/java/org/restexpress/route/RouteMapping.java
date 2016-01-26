@@ -102,8 +102,8 @@ public class RouteMapping
 			UrlMatch match = route.match(path);
 
 			if (match != null)
-			{
-				return new Action(route, match);
+			{ 
+				return new Action(route, match, route.getAsync());
 			}
 		}
 		

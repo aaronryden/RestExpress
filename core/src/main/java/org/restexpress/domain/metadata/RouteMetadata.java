@@ -34,6 +34,7 @@ public class RouteMetadata
 	private List<String> methods = new ArrayList<String>();
 	private boolean isSerialized;
 	private String baseUrl;
+	private Boolean async;
 
 	public String getName()
 	{
@@ -159,5 +160,9 @@ public class RouteMetadata
 	public void setBaseUrl(String baseUrl)
 	{
 		this.baseUrl = baseUrl;
+	}
+
+	public void setAsync(Boolean async) {
+		this.async = async;
 	}
 }

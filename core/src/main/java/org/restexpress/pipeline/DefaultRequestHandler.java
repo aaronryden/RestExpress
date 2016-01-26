@@ -24,6 +24,7 @@ import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.util.AttributeKey;
+import io.netty.util.ReferenceCountUtil;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -73,7 +74,7 @@ extends SimpleChannelInboundHandler<FullHttpRequest>
 	public DefaultRequestHandler(RouteResolver routeResolver, SerializationProvider serializationProvider,
 		HttpResponseWriter responseWriter, boolean enforceHttpSpec)
 	{
-		super();
+		super(false);
 		this.routeResolver = routeResolver;
 		this.serializationProvider = serializationProvider;
 		setResponseWriter(responseWriter);
@@ -123,12 +124,13 @@ extends SimpleChannelInboundHandler<FullHttpRequest>
 	public void channelRead0(ChannelHandlerContext ctx, FullHttpRequest event)
 	throws Exception
 	{
+		ReferenceCountUtil.retain(event);
 		MessageContext context = createInitialContext(ctx, event);
-
+		Boolean async = false;
 		try
 		{
 			// Process the request
-			processRequest(ctx, context);
+			async = processRequest(ctx, context, event);
 		}
 		catch(Throwable t)
 		{
@@ -136,7 +138,10 @@ extends SimpleChannelInboundHandler<FullHttpRequest>
 		}
 		finally
 		{
-			notifyComplete(context);
+			if(!async){
+				notifyComplete(context);
+				ReferenceCountUtil.release(event);
+			}
 		}
 	}
 
@@ -146,26 +151,49 @@ extends SimpleChannelInboundHandler<FullHttpRequest>
         super.channelReadComplete(ctx);
     }
 
-	private void processRequest(ChannelHandlerContext ctx, MessageContext context)
+	private Boolean processRequest(final ChannelHandlerContext ctx, final MessageContext context, final FullHttpRequest event)
 	throws Throwable
 	{
 		notifyReceived(context);
 		resolveRoute(context);
 		resolveResponseProcessor(context);
 		invokePreprocessors(preprocessors, context.getRequest());
-		Object result = context.getAction().invoke(context.getRequest(), context.getResponse());
+		
+		if(context.getAction().isAsync()) {
+			context.getAction().invoke(context.getRequest(), context.getResponse(), new onCompleteHandler() {  
+				@Override
+				public void onComplete(Object result) {
+					if(result != null){
+						context.getResponse().setBody(result);
+					}
+					invokePostprocessors(postprocessors, context.getRequest(), context.getResponse());
+					serializeResponse(context, false);
+					enforceHttpSpecification(context);
+					invokeFinallyProcessors(finallyProcessors, context.getRequest(), context.getResponse());					
+					writeResponse(ctx, context);
+					notifySuccess(context);
+					notifyComplete(context);
+					ReferenceCountUtil.release(event);
+					
+				}
+			});
+			return true;
+		} else {
+			Object result = context.getAction().invoke(context.getRequest(), context.getResponse());
+			if (result != null)
+			{
+				context.getResponse().setBody(result);
+			}
 
-		if (result != null)
-		{
-			context.getResponse().setBody(result);
+			invokePostprocessors(postprocessors, context.getRequest(), context.getResponse());
+			serializeResponse(context, false);
+			enforceHttpSpecification(context);
+			invokeFinallyProcessors(finallyProcessors, context.getRequest(), context.getResponse());
+			writeResponse(ctx, context);
+			notifySuccess(context);
+			return false;
 		}
-
-		invokePostprocessors(postprocessors, context.getRequest(), context.getResponse());
-		serializeResponse(context, false);
-		enforceHttpSpecification(context);
-		invokeFinallyProcessors(finallyProcessors, context.getRequest(), context.getResponse());
-		writeResponse(ctx, context);
-		notifySuccess(context);
+			
 	}
 
 	private void resolveResponseProcessor(MessageContext context)

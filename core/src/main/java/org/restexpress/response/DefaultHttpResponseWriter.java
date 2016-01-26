@@ -7,6 +7,7 @@ import static io.netty.handler.codec.http.HttpHeaders.Names.CONNECTION;
 import static io.netty.handler.codec.http.HttpHeaders.Names.CONTENT_LENGTH;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
@@ -20,6 +21,8 @@ import org.restexpress.Parameters;
 import org.restexpress.Request;
 import org.restexpress.Response;
 import org.restexpress.util.HttpSpecification;
+
+import com.google.gson.Gson;
 
 /**
  * @author toddf
@@ -58,7 +61,11 @@ implements HttpResponseWriter
 			}
 
 			enforceEmptyHeadResponseBody(request, httpResponse);
-			ctx.channel().write(httpResponse)
+			System.out.println(ctx.channel().isActive());
+			System.out.println(ctx.channel().isWritable());
+			System.out.println(ctx.channel().isRegistered());
+			
+			ChannelFuture f = ctx.channel().writeAndFlush(httpResponse)
 			    .addListener(ChannelFutureListener.CLOSE_ON_FAILURE);
 		}
 		else
@@ -67,7 +74,7 @@ implements HttpResponseWriter
 			enforceEmptyHeadResponseBody(request, httpResponse);
 
 			// Close the connection as soon as the message is sent.
-			ctx.channel().write(httpResponse)
+			ctx.channel().writeAndFlush(httpResponse)
 			    .addListener(ChannelFutureListener.CLOSE);
 		}
 	}

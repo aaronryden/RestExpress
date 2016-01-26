@@ -32,6 +32,7 @@ import org.restexpress.Request;
 import org.restexpress.Response;
 import org.restexpress.common.util.StringUtils;
 import org.restexpress.exception.ServiceException;
+import org.restexpress.pipeline.onCompleteHandler;
 import org.restexpress.url.UrlMatch;
 import org.restexpress.url.UrlMatcher;
 
@@ -58,6 +59,7 @@ public abstract class Route
 	private String defaultFormat;
 	private Set<String> flags = new HashSet<String>();
 	private Map<String, Object> parameters = new HashMap<String, Object>();
+	private Boolean async;
 
 	// SECTION: CONSTRUCTORS
 
@@ -67,7 +69,7 @@ public abstract class Route
 	 */
 	public Route(UrlMatcher urlMatcher, Object controller, Method action, HttpMethod method, boolean shouldSerializeResponse,
 		String name, List<String> supportedFormats, String defaultFormat, Set<String> flags, Map<String, Object> parameters,
-		String baseUrl)
+		String baseUrl, Boolean async)
 	{
 		super();
 		this.urlMatcher = urlMatcher;
@@ -82,6 +84,7 @@ public abstract class Route
 		this.flags.addAll(flags);
 		this.parameters.putAll(parameters);
 		this.baseUrl = baseUrl;
+		this.async = async;
 	}
 
 	/**
@@ -273,7 +276,7 @@ public abstract class Route
 	{
 		return urlMatcher.getParameterNames();
 	}
-
+	
 	public Object invoke(Request request, Response response)
 	{
 		try
@@ -297,5 +300,19 @@ public abstract class Route
         {
         	throw new ServiceException(e);
         }
+	}
+
+	public void invoke(Request request, Response response, onCompleteHandler callback) {
+		
+		try {
+			action.invoke(controller, request, response, callback);
+		} catch(Exception e){
+			throw new ServiceException(e);
+		}
+		
+	}
+
+	public Boolean getAsync() {
+		return this.async;
 	}
 }

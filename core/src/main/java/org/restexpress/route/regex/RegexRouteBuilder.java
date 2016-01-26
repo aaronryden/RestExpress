@@ -45,22 +45,22 @@ extends RouteBuilder
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *  	
 	 * @see
 	 * com.strategicgains.restexpress.route.RouteBuilder#newRoute(java.lang.
 	 * String, java.lang.Object, java.lang.reflect.Method,
 	 * org.jboss.netty.handler.codec.http.HttpMethod, boolean, java.lang.String,
 	 * java.util.List, java.lang.String)
 	 */
-	@Override
+	@Override  
 	protected Route newRoute(String pattern, Object controller, Method action,
 	    HttpMethod method, boolean shouldSerializeResponse, String name,
 	    List<String> supportedFormats, String defaultFormat, Set<String> flags,
-	    Map<String, Object> parameters, String baseUrl)
+	    Map<String, Object> parameters, String baseUrl, Boolean async)
 	{
 		return new RegexRoute(pattern, controller, action, method,
 		    shouldSerializeResponse, name, supportedFormats, defaultFormat,
-		    flags, parameters, baseUrl);
+		    flags, parameters, baseUrl, async);
 	}
 
 	protected String toRegexPattern(String uri)

@@ -64,4 +64,8 @@ public class RouteDefaults
 			processor.alias(entry.getKey(), entry.getValue());
 		}
 	}
+	
+	public Boolean getAsync() {
+		return false;
+	}
 }

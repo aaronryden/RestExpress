@@ -20,6 +20,7 @@ import java.util.Map.Entry;
 
 import org.restexpress.Request;
 import org.restexpress.Response;
+import org.restexpress.pipeline.onCompleteHandler;
 import org.restexpress.url.UrlMatch;
 
 /**
@@ -30,12 +31,14 @@ public class Action
 {
 	private Route route;
 	private UrlMatch match;
+	private Boolean async;
 	
-	public Action(Route route, UrlMatch match)
+	public Action(Route route, UrlMatch match, Boolean isAsync)
 	{
 		super();
 		this.route = route;
 		this.match = match;
+		this.async = isAsync;
 	}
 
 	public Route getRoute()
@@ -64,6 +67,10 @@ public class Action
     {
     	return getRoute().invoke(request, response);
     }
+    
+    public void invoke(Request request, Response response, onCompleteHandler callback) {
+    	getRoute().invoke(request, response, callback); 
+    }
 
     /**
      * Retrieves the parameters from the URL match.  These are used as Request headers
@@ -80,4 +87,8 @@ public class Action
     {
     	return match.get(key);
     }
+
+	public boolean isAsync() {
+		return this.async;
+	}
 }

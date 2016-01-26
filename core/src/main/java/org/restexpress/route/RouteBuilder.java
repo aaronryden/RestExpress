@@ -19,6 +19,7 @@ import org.restexpress.Response;
 import org.restexpress.common.exception.ConfigurationException;
 import org.restexpress.domain.metadata.RouteMetadata;
 import org.restexpress.domain.metadata.UriMetadata;
+import org.restexpress.pipeline.onCompleteHandler;
 import org.restexpress.settings.RouteDefaults;
 
 import io.netty.handler.codec.http.HttpMethod;
@@ -63,6 +64,7 @@ public abstract class RouteBuilder
 	private String baseUrl;
 	private Set<String> flags = new HashSet<String>();
 	private Map<String, Object> parameters = new HashMap<String, Object>();
+	private Boolean async = false;
 	
 	/**
 	 * Create a RouteBuilder instance for the given URI pattern. URIs that match the pattern
@@ -290,7 +292,7 @@ public abstract class RouteBuilder
 			}
 			
 			Method action = determineActionMethod(controller, actionName);
-			routes.add(newRoute(pattern, controller, action, method, shouldSerializeResponse, name, supportedFormats, defaultFormat, flags, parameters, baseUrl));
+			routes.add(newRoute(pattern, controller, action, method, shouldSerializeResponse, name, supportedFormats, defaultFormat, flags, parameters, baseUrl, this.async));
 		}
 		
 		return routes;
@@ -309,6 +311,7 @@ public abstract class RouteBuilder
 		metadata.setDefaultFormat(defaultFormat);
 		metadata.addAllSupportedFormats(supportedFormats);
 		metadata.setBaseUrl(baseUrl);
+		metadata.setAsync(this.async);
 		
 		UriMetadata uriMeta = new UriMetadata(uri);
 		List<Route> routes = build();
@@ -338,12 +341,13 @@ public abstract class RouteBuilder
 	 * @param flags
 	 * @param parameters
 	 * @param baseUrl
+	 * @param async 
      * @return
      */
     protected abstract Route newRoute(String pattern, Object controller, Method action,
     	HttpMethod method, boolean shouldSerializeResponse,
     	String name, List<String> supportedFormats, String defaultFormat, Set<String> flags,
-    	Map<String, Object> parameters, String baseUrl);
+    	Map<String, Object> parameters, String baseUrl, Boolean async);
 
 
 	// SECTION: UTILITY - PRIVATE
@@ -361,10 +365,15 @@ public abstract class RouteBuilder
 	{
 		try
 		{
-			return controller.getClass().getMethod(actionName, Request.class, Response.class);
+			if(this.async){
+				return controller.getClass().getMethod(actionName, Request.class, Response.class, onCompleteHandler.class);
+			} else {
+				return controller.getClass().getMethod(actionName, Request.class, Response.class);
+			}
 		}
 		catch (Exception e)
 		{
+			System.err.println("No route with controller and action " + controller.toString() + " " + actionName);
 			throw new ConfigurationException(e);
 		}
 	}
@@ -378,5 +387,12 @@ public abstract class RouteBuilder
 
     	defaultFormat(defaults.getDefaultFormat());
     	baseUrl(defaults.getBaseUrl());
+    	this.async = defaults.getAsync();
+    	
     }
+
+	public void setAsync(boolean isAsync) {
+		this.async = isAsync;
+		
+	}
 }

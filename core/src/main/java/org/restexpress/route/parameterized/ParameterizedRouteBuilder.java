@@ -51,11 +51,11 @@ extends RouteBuilder
 	protected Route newRoute(String pattern, Object controller, Method action,
 	    HttpMethod method, boolean shouldSerializeResponse, String name,
 	    List<String> supportedFormats, String defaultFormat, Set<String> flags,
-	    Map<String, Object> parameters, String baseUrl)
+	    Map<String, Object> parameters, String baseUrl, Boolean async)
 	{
 		ParameterizedRoute r = new ParameterizedRoute(pattern, controller, action, method,
 		    shouldSerializeResponse, name, supportedFormats, defaultFormat,
-		    flags, parameters, baseUrl);
+		    flags, parameters, baseUrl, async);
 		r.addAliases(aliases);
 		return r;
 	}
